@@ -15,28 +15,6 @@ TECH STACK
 
 ------------------------------------------------------------
 
-FOLDER STRUCTURE
-
-frontend/
-│
-├── src/
-│   ├── pages/
-│   │   ├── Login.tsx
-│   │   └── Dashboard.tsx
-│   │
-│   ├── features/
-│   │   ├── AvatarSyncStudio.tsx
-│   │   └── TextToAvatarStudio.tsx
-│   │
-│   ├── services/
-│   │   └── api.ts
-│
-├── public/
-├── package.json
-└── vite.config.ts
-
-------------------------------------------------------------
-
 PREREQUISITES
 
 - Node.js 18 or higher
