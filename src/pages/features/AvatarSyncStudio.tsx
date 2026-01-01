@@ -1,0 +1,125 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import FileUpload from "@/components/ui/file-upload";
+import { Send, Video } from "lucide-react";
+import { toast } from "sonner";
+import { Type, User, UserRound, Music} from "lucide-react";
+
+const AvatarSyncStudio = () => {
+  const navigate = useNavigate();
+
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 🔐 Ensure user is logged in
+  useEffect(() => {
+    const user = sessionStorage.getItem("user");
+    if (!user) navigate("/login");
+  }, [navigate]);
+
+  // 🚀 Submit Feature-1 Job
+  const handleSubmit = async () => {
+  if (!audioFile || !videoFile) {
+    alert("Please upload both audio and video");
+    return;
+  }
+
+  const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+
+  const formData = new FormData();
+  formData.append("audio", audioFile);
+  formData.append("video", videoFile);
+
+  try {
+    const res = await fetch(
+      `http://127.0.0.1:8000/feature1/create-job?user_id=${user.username}`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    if (!res.ok) throw new Error("Job creation failed");
+    navigate("/dashboard");
+
+    toast.success("Job submitted successfully");
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to submit job");
+  }
+};
+
+
+  return (
+    <div className="max-w-3xl mx-auto w-full">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center">
+            <Video className="w-8 h-8 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="font-display text-3xl font-bold">
+              Avatar Sync Studio
+            </h1>
+            <p className="text-muted-foreground">Audio + Video</p>
+          </div>
+        </div>
+        <p className="text-muted-foreground">
+          Upload your audio and video/image files to generate a lip-synced avatar video.
+        </p>
+      </div>
+
+      {/* Upload Form */}
+      <div className="space-y-8 bg-card rounded-2xl border p-8">
+        <FileUpload
+  label="Audio File"
+  description="MP3, WAV, M4A (Max 50MB)"
+  accept={[
+    "audio/mpeg",   // mp3
+    "audio/wav",
+    "audio/x-wav",
+    "audio/mp4",    // m4a
+  ]}
+  icon={<Music className="w-6 h-6" />}
+  onFileSelect={setAudioFile}
+  selectedFile={audioFile}
+/>
+
+
+        <FileUpload
+  label="Video or Image File"
+  description="MP4, MOV, JPG, PNG (Max 100MB)"
+  accept={[
+    "video/mp4",
+    "video/quicktime", // mov
+    "image/jpeg",
+    "image/png",
+  ]}
+  icon={<Video className="w-6 h-6" />}
+  onFileSelect={setVideoFile}
+  selectedFile={videoFile}
+/>
+
+
+        <Button
+          size="lg"
+          className="w-full"
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Submitting..." : (
+            <>
+              <Send className="w-5 h-5 mr-2" />
+              Submit Job
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+export default AvatarSyncStudio;
