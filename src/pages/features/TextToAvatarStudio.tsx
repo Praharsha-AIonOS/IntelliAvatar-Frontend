@@ -75,7 +75,7 @@ const TextToAvatarStudio = () => {
 
     try {
       const formData = new FormData();
-      // formData.append("user_id", userEmail);
+      formData.append("user_id", userEmail);
       formData.append("text", text);
       formData.append("gender", gender);
       formData.append("video", videoFile);

@@ -40,33 +40,77 @@ interface Job {
 /* ================================
    Time Helpers
 ================================ */
-const parseTimestamp = (ts?: string | null): Date | null => {
+// 1️⃣ Always parse backend timestamps as UTC
+// created_at → already in IST
+const parseLocalTimestamp = (ts?: string | null): Date | null => {
   if (!ts) return null;
-  const iso = ts.replace(" ", "T");
+
+  const iso = ts.replace(" ", "T"); // NO Z
   const d = new Date(iso);
+
   return isNaN(d.getTime()) ? null : d;
 };
 
-const formatDate = (ts?: string | null) => {
-  const d = parseTimestamp(ts);
+// started_at, completed_at → stored in UTC
+const parseUtcTimestamp = (ts?: string | null): Date | null => {
+  if (!ts) return null;
+
+  const iso = ts.replace(" ", "T") + "Z"; // force UTC
+  const d = new Date(iso);
+
+  return isNaN(d.getTime()) ? null : d;
+};
+
+const formatCreatedTime = (ts?: string | null) => {
+  const d = parseLocalTimestamp(ts);
   if (!d) return "-";
-  return d.toLocaleString(undefined, {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
+
+  return d.toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour12: false,
   });
 };
 
+const formatExecutionTime = (ts?: string | null) => {
+  const d = parseUtcTimestamp(ts);
+  if (!d) return "-";
+
+  return d.toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour12: false,
+  });
+};
+
+
+// 2️⃣ Display in LOCAL TIME (IST) using 24-hour clock
+// const formatLocalTime = (ts?: string | null) => {
+//   const d = parseTimestamp(ts);
+//   if (!d) return "-";
+
+//   return d.toLocaleString("en-IN", {
+//     timeZone: "Asia/Kolkata",
+//     year: "numeric",
+//     month: "2-digit",
+//     day: "2-digit",
+//     hour: "2-digit",
+//     minute: "2-digit",
+//     second: "2-digit",
+//     hour12: false, // ✅ 24-hour clock
+//   });
+// };
+
+
 const secondsBetween = (start?: string | null, end?: string | null) => {
-  const s = parseTimestamp(start);
-  const e = parseTimestamp(end);
+  const s = parseUtcTimestamp(start);
+  const e = parseUtcTimestamp(end);
+
   if (!s || !e) return "-";
+
   const sec = Math.round((e.getTime() - s.getTime()) / 1000);
   return sec >= 0 ? `${sec} sec` : "-";
 };
+
+
 
 const handleDownload = async (jobId: string) => {
   try {
@@ -104,6 +148,20 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
+  const e2eTime = (
+  created?: string | null,
+  completed?: string | null
+) => {
+  const c = parseLocalTimestamp(created);   // IST
+  const e = parseUtcTimestamp(completed);   // UTC → IST later
+
+  if (!c || !e) return "-";
+
+  const sec = Math.round((e.getTime() - c.getTime()) / 1000);
+
+  return sec >= 0 ? `${sec} sec` : "-";
+};
+
 
   const loadJobs = async () => {
     try {
@@ -117,16 +175,16 @@ export default function Dashboard() {
         id: job.job_id,
         featureType: job.feature || "Avatar Sync Studio",
         status: job.status,
-        submitted: formatDate(job.created_at),
-        started: formatDate(job.started_at),
-        ended: formatDate(job.completed_at),
+        submitted: formatCreatedTime(job.created_at),
+        started: formatExecutionTime(job.started_at),
+        ended: formatExecutionTime(job.completed_at),
         duration:
           job.status === "COMPLETED"
             ? secondsBetween(job.started_at, job.completed_at)
             : "-",
         e2e:
           job.status === "COMPLETED"
-            ? secondsBetween(job.created_at, job.completed_at)
+            ? e2eTime(job.created_at, job.completed_at)
             : "-",
       }));
 
