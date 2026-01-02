@@ -47,49 +47,51 @@ const WishesGenerator = () => {
     setNames(names.filter((n) => n !== name));
   };
 
-  const handleSubmit = () => {
-    if (names.length === 0) {
-      toast.error("Please add at least one name");
-      return;
-    }
-    if (!script.trim()) {
-      toast.error("Please enter a script template");
-      return;
-    }
-    if (!videoFile) {
-      toast.error("Please upload a video or image file");
-      return;
+const handleSubmit = async () => {
+  if (names.length === 0 || !script.trim() || !videoFile) {
+    toast.error("Missing inputs");
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  try {
+    const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+
+    const formData = new FormData();
+    formData.append("user_id", user.username);
+    formData.append("gender", "neutral");
+    formData.append("script", script);
+    names.forEach((n) => formData.append("names", n));
+    formData.append("video", videoFile);
+
+    const res = await fetch(
+      "http://127.0.0.1:8000/feature3/personalized-wishes",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error("Submission failed");
     }
 
-    setIsSubmitting(true);
+    const data = await res.json();
 
-    setTimeout(() => {
-      const jobs = JSON.parse(localStorage.getItem("jobs") || "[]");
-      const user = JSON.parse(sessionStorage.getItem("user") || "{}");
-      
-      // Create multiple jobs for each name
-      names.forEach((name, index) => {
-        const newJob = {
-          id: `JOB-${Date.now()}-${index}`,
-          userId: user.username,
-          featureType: "Personalized Wishes",
-          status: "Queued",
-          queuePosition: jobs.length + index + 1,
-          submissionTime: new Date().toISOString(),
-          name,
-          script: script.replace("{name}", name).substring(0, 50) + "...",
-          videoFile: videoFile.name,
-        };
-        jobs.push(newJob);
-      });
-      
-      localStorage.setItem("jobs", JSON.stringify(jobs));
+    toast.success(`${data.jobs_created} jobs queued successfully`);
 
-      toast.success(`${names.length} job(s) submitted successfully!`);
-      setIsSubmitting(false);
-      navigate("/dashboard");
-    }, 1500);
-  };
+    // ✅ NAVIGATE ONLY AFTER EVERYTHING IS DONE
+    navigate("/dashboard");
+
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to submit jobs");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   return (
     <div className="max-w-3xl mx-auto w-full">
@@ -172,7 +174,12 @@ const WishesGenerator = () => {
         </div>
         {/* Video Upload */}
         <FileUpload
-          accept={{ "video/*": [".mp4", ".mov"], "image/*": [".jpg", ".jpeg", ".png"] }}
+          accept={[
+    "video/mp4",
+    "video/quicktime",
+    "image/png",
+    "image/jpeg",
+  ]}
           label="Avatar Video or Image"
           description="MP4, MOV, JPG, PNG"
           icon="video"
