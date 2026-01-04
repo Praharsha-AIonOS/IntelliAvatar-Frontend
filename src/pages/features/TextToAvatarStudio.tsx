@@ -15,6 +15,7 @@ import FileUpload from "@/components/ui/file-upload";
 import { Send, Type, User, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getUserSession, verifyToken, getAuthToken } from "@/lib/api/auth";
 
 const languages = [
   { value: "en", label: "English" },
@@ -36,8 +37,16 @@ const TextToAvatarStudio = () => {
 
   // 🔐 Auth guard
   useEffect(() => {
-    const user = sessionStorage.getItem("user");
-    if (!user) navigate("/login");
+    const checkAuth = async () => {
+      const user = getUserSession();
+      if (!user) {
+        const result = await verifyToken();
+        if (!result.valid) {
+          navigate("/login");
+        }
+      }
+    };
+    checkAuth();
   }, [navigate]);
 
   const handleSubmit = async () => {
@@ -51,31 +60,30 @@ const TextToAvatarStudio = () => {
       return;
     }
 
-    // ✅ Safe user email extraction
-    const storedUser = sessionStorage.getItem("user");
-    if (!storedUser) {
+    // ✅ Get user from session
+    const user = getUserSession();
+    if (!user) {
       toast.error("User not authenticated");
       return;
     }
 
-    let userEmail = "";
-    try {
-      const parsed = JSON.parse(storedUser);
-      userEmail = parsed.email ?? "";
-    } catch {
-      userEmail = storedUser;
-    }
-
-    if (!userEmail) {
-      toast.error("User email not found");
+    // Use username or email for user_id
+    const userId = user.username || user.email || "";
+    if (!userId) {
+      toast.error("User information not found");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
+      const token = getAuthToken();
+      if (!token) {
+        toast.error("Authentication required");
+        return;
+      }
+
       const formData = new FormData();
-      formData.append("user_id", userEmail);
       formData.append("text", text);
       formData.append("gender", gender);
       formData.append("video", videoFile);
@@ -84,6 +92,9 @@ const TextToAvatarStudio = () => {
         "http://127.0.0.1:8000/feature2/text-to-avatar",
         {
           method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
           body: formData,
         }
       );
@@ -94,7 +105,10 @@ const TextToAvatarStudio = () => {
       }
 
       toast.success("Job submitted successfully!");
-      navigate("/dashboard");
+      // Small delay to ensure backend processes the job before navigating
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 100);
     } catch (error: any) {
       toast.error(error.message || "Something went wrong");
     } finally {

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 // import Robot from "@/components/ui/robot";
 import { toast } from "sonner";
 import { Eye, EyeOff, LogIn } from "lucide-react";
+import { login } from "@/lib/api/auth";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -25,34 +26,21 @@ const Login = () => {
 
     setIsLoading(true);
 
-    // Simulate login - In production, this would connect to a backend
-    setTimeout(() => {
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-      const user = users.find((u: { username: string; password: string }) => 
-        u.username === username && u.password === password
-      );
+    try {
+      // Call backend API for authentication
+      await login({
+        username: username,
+        password: password,
+      });
 
-      if (!user) {
-        toast.error("Invalid username or password");
-        setIsLoading(false);
-        return;
-      }
-
-      // Store session
-      // sessionStorage.setItem("user", JSON.stringify({ username }));
-      sessionStorage.setItem(
-        "user",
-        JSON.stringify({
-          email: username,   // 👈 treat username as email
-          username: username
-        })
-      );
-
-      
       toast.success("Login successful!");
-      setIsLoading(false);
       navigate("/home");
-    }, 1000);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Login failed";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

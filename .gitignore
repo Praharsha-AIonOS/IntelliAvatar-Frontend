@@ -73,3 +73,26 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Media files - Video (do not commit video files)
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.flv
+*.wmv
+*.webm
+
+# Media files - Audio (do not commit audio files)
+*.mp3
+*.wav
+*.flac
+*.aac
+*.ogg
+*.m4a
+*.wma
+
+# Media files - Images (only ignore generated/uploaded, keep public assets)
+uploads/
+generated/
+user-uploads/

@@ -2,16 +2,17 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { LogOut, User } from "lucide-react";
+import { logout, getUserSession } from "@/lib/api/auth";
 
 const HomeNavbar = () => {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("user");
+  const handleLogout = async () => {
+    await logout();
     navigate("/");
   };
 
-  const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+  const user = getUserSession() || { username: "User" };
 
   return (
     <motion.header

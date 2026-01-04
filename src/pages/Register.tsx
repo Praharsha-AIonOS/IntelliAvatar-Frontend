@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 // import Robot from "@/components/ui/robot";
 import { toast } from "sonner";
 import { Eye, EyeOff, UserPlus } from "lucide-react";
+import { register } from "@/lib/api/auth";
 
 const Register = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -18,7 +20,7 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !password) {
+    if (!username || !email || !password) {
       toast.error("Please fill in all fields");
       return;
     }
@@ -28,27 +30,31 @@ const Register = () => {
       return;
     }
 
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
     setIsLoading(true);
 
-    // Simulate registration - In production, this would connect to a backend
-    setTimeout(() => {
-      // Store user data in localStorage (simulating database)
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-      
-      const existingUser = users.find((u: { username: string }) => u.username === username);
-      if (existingUser) {
-        toast.error("Username already exists");
-        setIsLoading(false);
-        return;
-      }
+    try {
+      // Call backend API for registration
+      await register({
+        username: username,
+        email: email,
+        password: password,
+      });
 
-      users.push({ username, password });
-      localStorage.setItem("users", JSON.stringify(users));
-      
-      toast.success("Registration successful! Please login.");
+      toast.success("Registration successful! You are now logged in.");
+      navigate("/home");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Registration failed";
+      toast.error(errorMessage);
+    } finally {
       setIsLoading(false);
-      navigate("/login");
-    }, 1000);
+    }
   };
 
   return (
@@ -91,6 +97,18 @@ const Register = () => {
                 placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                className="h-12 bg-secondary/50 border-border focus:border-primary"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-foreground font-medium">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="h-12 bg-secondary/50 border-border focus:border-primary"
               />
             </div>

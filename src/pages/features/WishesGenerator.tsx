@@ -10,6 +10,7 @@ import HomeNavbar from "@/components/layout/HomeNavbar";
 import FileUpload from "@/components/ui/file-upload";
 import { ArrowLeft, Send, Heart, Plus, X } from "lucide-react";
 import { toast } from "sonner";
+import { getUserSession, verifyToken, getAuthToken } from "@/lib/api/auth";
 
 const WishesGenerator = () => {
   const navigate = useNavigate();
@@ -20,10 +21,16 @@ const WishesGenerator = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const user = sessionStorage.getItem("user");
-    if (!user) {
-      navigate("/login");
-    }
+    const checkAuth = async () => {
+      const user = getUserSession();
+      if (!user) {
+        const result = await verifyToken();
+        if (!result.valid) {
+          navigate("/login");
+        }
+      }
+    };
+    checkAuth();
   }, [navigate]);
 
   const addName = () => {
@@ -56,10 +63,21 @@ const handleSubmit = async () => {
   setIsSubmitting(true);
 
   try {
-    const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+    const user = getUserSession();
+    if (!user) {
+      toast.error("User not authenticated");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const token = getAuthToken();
+    if (!token) {
+      toast.error("Authentication required");
+      setIsSubmitting(false);
+      return;
+    }
 
     const formData = new FormData();
-    formData.append("user_id", user.username);
     formData.append("gender", "neutral");
     formData.append("script", script);
     names.forEach((n) => formData.append("names", n));
@@ -69,6 +87,9 @@ const handleSubmit = async () => {
       "http://127.0.0.1:8000/feature3/personalized-wishes",
       {
         method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
         body: formData,
       }
     );
@@ -82,7 +103,10 @@ const handleSubmit = async () => {
     toast.success(`${data.jobs_created} jobs queued successfully`);
 
     // ✅ NAVIGATE ONLY AFTER EVERYTHING IS DONE
-    navigate("/dashboard");
+    // Small delay to ensure backend processes the job before navigating
+    setTimeout(() => {
+      navigate("/dashboard");
+    }, 100);
 
   } catch (err) {
     console.error(err);
