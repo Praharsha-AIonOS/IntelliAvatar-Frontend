@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import HomeNavbar from "@/components/layout/HomeNavbar";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getAuthToken } from "@/lib/api/auth";
 
 /* ================================
    Types (MATCH BACKEND)
@@ -114,8 +115,19 @@ const secondsBetween = (start?: string | null, end?: string | null) => {
 
 const handleDownload = async (jobId: string) => {
   try {
+    const token = getAuthToken();
+    if (!token) {
+      alert("Authentication required");
+      return;
+    }
+
     const response = await fetch(
-      `http://127.0.0.1:8000/feature1/download/${jobId}`
+      `http://127.0.0.1:8000/feature1/download/${jobId}`,
+      {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      }
     );
 
     if (!response.ok) {
@@ -146,6 +158,7 @@ const handleDownload = async (jobId: string) => {
 ================================ */
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
   const e2eTime = (
@@ -166,7 +179,18 @@ export default function Dashboard() {
   const loadJobs = async () => {
     try {
       setLoading(true);
-      const res = await fetch("http://127.0.0.1:8000/feature1/jobs");
+      const token = getAuthToken();
+      if (!token) {
+        toast.error("Authentication required");
+        navigate("/login");
+        return;
+      }
+
+      const res = await fetch("http://127.0.0.1:8000/feature1/jobs", {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
       if (!res.ok) throw new Error("Fetch failed");
 
       const data: BackendJob[] = await res.json();
@@ -197,9 +221,10 @@ export default function Dashboard() {
     }
   };
 
+  // Load jobs when component mounts or when navigating to dashboard
   useEffect(() => {
     loadJobs();
-  }, []);
+  }, [location.pathname]); // Refetch when route changes to /dashboard
 
   const getStatusBadge = (status: string) => {
     switch (status) {

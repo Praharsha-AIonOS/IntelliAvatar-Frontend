@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import HomeNavbar from "@/components/layout/HomeNavbar";
 import { Video, Type, Heart, GraduationCap, ArrowRight } from "lucide-react";
+import { getUserSession, verifyToken } from "@/lib/api/auth";
 
 const features = [
   {
@@ -48,10 +49,17 @@ const Home = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const user = sessionStorage.getItem("user");
-    if (!user) {
-      navigate("/login");
-    }
+    const checkAuth = async () => {
+      const user = getUserSession();
+      if (!user) {
+        // Try to verify token if it exists
+        const result = await verifyToken();
+        if (!result.valid) {
+          navigate("/login");
+        }
+      }
+    };
+    checkAuth();
   }, [navigate]);
 
   return (

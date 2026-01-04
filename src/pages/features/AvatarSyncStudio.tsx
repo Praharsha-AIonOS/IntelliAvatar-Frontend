@@ -5,6 +5,7 @@ import FileUpload from "@/components/ui/file-upload";
 import { Send, Video } from "lucide-react";
 import { toast } from "sonner";
 import { Type, User, UserRound, Music} from "lucide-react";
+import { getUserSession, verifyToken, getAuthToken } from "@/lib/api/auth";
 
 const AvatarSyncStudio = () => {
   const navigate = useNavigate();
@@ -15,39 +16,66 @@ const AvatarSyncStudio = () => {
 
   // 🔐 Ensure user is logged in
   useEffect(() => {
-    const user = sessionStorage.getItem("user");
-    if (!user) navigate("/login");
+    const checkAuth = async () => {
+      const user = getUserSession();
+      if (!user) {
+        const result = await verifyToken();
+        if (!result.valid) {
+          navigate("/login");
+        }
+      }
+    };
+    checkAuth();
   }, [navigate]);
 
   // 🚀 Submit Feature-1 Job
   const handleSubmit = async () => {
   if (!audioFile || !videoFile) {
-    alert("Please upload both audio and video");
+    toast.error("Please upload both audio and video");
     return;
   }
 
-  const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+  const user = getUserSession();
+  if (!user) {
+    toast.error("User not authenticated");
+    return;
+  }
 
   const formData = new FormData();
   formData.append("audio", audioFile);
   formData.append("video", videoFile);
 
   try {
+    setIsSubmitting(true);
+    const token = getAuthToken();
+    if (!token) {
+      toast.error("Authentication required");
+      return;
+    }
+
     const res = await fetch(
-      `http://127.0.0.1:8000/feature1/create-job?user_id=${user.username}`,
+      `http://127.0.0.1:8000/feature1/create-job`,
       {
         method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
         body: formData,
       }
     );
 
     if (!res.ok) throw new Error("Job creation failed");
-    navigate("/dashboard");
-
+    
     toast.success("Job submitted successfully");
+    // Small delay to ensure backend processes the job before navigating
+    setTimeout(() => {
+      navigate("/dashboard");
+    }, 100);
   } catch (err) {
     console.error(err);
     toast.error("Failed to submit job");
+  } finally {
+    setIsSubmitting(false);
   }
 };
 

@@ -9,6 +9,7 @@ import FileUpload from "@/components/ui/file-upload";
 import { ArrowLeft, Send, GraduationCap, User, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getUserSession, verifyToken } from "@/lib/api/auth";
 
 const languages = [
   { value: "en", label: "English" },
@@ -28,10 +29,16 @@ const IntelliTutor = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const user = sessionStorage.getItem("user");
-    if (!user) {
-      navigate("/login");
-    }
+    const checkAuth = async () => {
+      const user = getUserSession();
+      if (!user) {
+        const result = await verifyToken();
+        if (!result.valid) {
+          navigate("/login");
+        }
+      }
+    };
+    checkAuth();
   }, [navigate]);
 
   const handleSubmit = () => {
@@ -44,7 +51,7 @@ const IntelliTutor = () => {
 
     setTimeout(() => {
       const jobs = JSON.parse(localStorage.getItem("jobs") || "[]");
-      const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+      const user = getUserSession() || { username: "" };
       
       const newJob = {
         id: `JOB-${Date.now()}`,
