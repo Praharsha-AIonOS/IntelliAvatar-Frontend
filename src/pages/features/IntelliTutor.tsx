@@ -9,7 +9,7 @@ import FileUpload from "@/components/ui/file-upload";
 import { ArrowLeft, Send, GraduationCap, User, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { getUserSession, verifyToken } from "@/lib/api/auth";
+import { getUserSession, verifyToken, getAuthToken } from "@/lib/api/auth";
 
 const languages = [
   { value: "en", label: "English" },
@@ -41,38 +41,53 @@ const IntelliTutor = () => {
     checkAuth();
   }, [navigate]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!pptFile) {
       toast.error("Please upload a PowerPoint file");
+      return;
+    }
+    if (!avatarFile) {
+      toast.error("Please upload a face video");
+      return;
+    }
+
+    const token = getAuthToken();
+    if (!token) {
+      toast.error("Authentication required");
+      navigate("/login");
       return;
     }
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const jobs = JSON.parse(localStorage.getItem("jobs") || "[]");
-      const user = getUserSession() || { username: "" };
-      
-      const newJob = {
-        id: `JOB-${Date.now()}`,
-        userId: user.username,
-        featureType: "IntelliTutor",
-        status: "Queued",
-        queuePosition: jobs.length + 1,
-        submissionTime: new Date().toISOString(),
-        pptFile: pptFile.name,
-        avatarFile: avatarFile?.name || "Default Avatar",
-        language,
-        gender,
-      };
+    try {
+      const formData = new FormData();
+      formData.append("ppt", pptFile);
+      formData.append("face_video", avatarFile);
+      formData.append("language", language);
+      formData.append("gender", gender);
 
-      jobs.push(newJob);
-      localStorage.setItem("jobs", JSON.stringify(jobs));
+      const res = await fetch("http://127.0.0.1:8000/feature4/create-job", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Job submission failed");
+      }
 
       toast.success("Job submitted successfully!");
+      // Small delay to ensure backend writes the job before dashboard loads
+      setTimeout(() => navigate("/dashboard"), 150);
+    } catch (error: any) {
+      toast.error(error.message || "Something went wrong");
+    } finally {
       setIsSubmitting(false);
-      navigate("/dashboard");
-    }, 1500);
+    }
   };
 
   return (
@@ -99,18 +114,21 @@ const IntelliTutor = () => {
       <div className="space-y-8 bg-card rounded-2xl border border-border p-8">
         {/* PPT Upload */}
         <FileUpload
-          accept={{ "application/vnd.ms-powerpoint": [".ppt"], "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"] }}
+          accept={{
+            "application/vnd.ms-powerpoint": [".ppt"],
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
+          }}
           label="PowerPoint Presentation"
           description="PPT, PPTX (Max 100MB)"
           icon="file"
           onFileSelect={setPptFile}
           selectedFile={pptFile}
         />
-        {/* Avatar Upload */}
+        {/* Face Video Upload */}
         <FileUpload
-          accept={{ "video/*": [".mp4", ".mov"], "image/*": [".jpg", ".jpeg", ".png"] }}
-          label="Avatar Video or Image (Optional)"
-          description="MP4, MOV, JPG, PNG - Leave empty for default avatar"
+          accept={{ "video/*": [".mp4", ".mov", ".mkv", ".avi"] }}
+          label="Talking-Head Video"
+          description="MP4, MOV, MKV, AVI (Max 200MB)"
           icon="video"
           onFileSelect={setAvatarFile}
           selectedFile={avatarFile}
