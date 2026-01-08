@@ -33,7 +33,7 @@ const HeroSection = () => {
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           {/* Removed 'Powered by AIonOS' badge */}
-
+          <img src="/Pause GIF image.gif" alt="IntelliAvatar Animation" className="w-28 h-28 mb-4 mx-auto rounded-xl shadow-lg" />
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}

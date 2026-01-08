@@ -53,7 +53,7 @@ const PurposeSection = () => {
             Built for Enterprise Performance
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Our platform is designed to handle the most demanding AI workloads with precision and reliability.
+            The platform is designed to handle the most demanding AI workloads with precision and reliability.
           </p>
         </motion.div>
 
