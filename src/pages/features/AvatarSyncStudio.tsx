@@ -64,16 +64,19 @@ const AvatarSyncStudio = () => {
       }
     );
 
-    if (!res.ok) throw new Error("Job creation failed");
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: "Job creation failed" }));
+      throw new Error(err.detail || "Job creation failed");
+    }
     
     toast.success("Job submitted successfully");
     // Small delay to ensure backend processes the job before navigating
     setTimeout(() => {
       navigate("/dashboard");
     }, 100);
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    toast.error("Failed to submit job");
+    toast.error(err.message || "Failed to submit job");
   } finally {
     setIsSubmitting(false);
   }

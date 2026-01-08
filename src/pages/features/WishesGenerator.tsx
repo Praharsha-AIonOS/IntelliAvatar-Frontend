@@ -95,7 +95,8 @@ const handleSubmit = async () => {
     );
 
     if (!res.ok) {
-      throw new Error("Submission failed");
+      const err = await res.json().catch(() => ({ detail: "Submission failed" }));
+      throw new Error(err.detail || "Submission failed");
     }
 
     const data = await res.json();
@@ -108,9 +109,9 @@ const handleSubmit = async () => {
       navigate("/dashboard");
     }, 100);
 
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    toast.error("Failed to submit jobs");
+    toast.error(err.message || "Failed to submit jobs");
   } finally {
     setIsSubmitting(false);
   }
